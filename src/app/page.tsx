@@ -16,13 +16,15 @@ const Section = ({ children }: { children: React.ReactNode }) => {
   });
 
   const opacity = useTransform(scrollYProgress, [0, 0.3, 0.7, 1], [0, 1, 1, 0]);
-  const y = useTransform(scrollYProgress, [0, 0.3, 0.7, 1], [100, 0, 0, -80]);
+  // ✅ RESPONSIVE ANIMATION: Smaller Y-offset on mobile (40px) vs PC (100px)
+  const yOffset = typeof window !== 'undefined' && window.innerWidth < 768 ? 40 : 100;
+  const y = useTransform(scrollYProgress, [0, 0.3, 0.7, 1], [yOffset, 0, 0, -yOffset * 0.8]);
 
   return (
     <motion.div
       ref={ref}
       style={{ opacity, y }}
-      className="h-[100vh] flex flex-col items-center justify-center px-6 md:px-20"
+      className="h-[100svh] flex flex-col items-center justify-center px-6 md:px-20"
     >
       {children}
     </motion.div>
@@ -52,7 +54,7 @@ const PreviewCard = ({
           }`}
       >
         <h2
-          className="text-4xl md:text-6xl font-serif mb-6 leading-[1.1] max-w-2xl"
+          className="text-3xl sm:text-4xl md:text-6xl font-serif mb-6 leading-[1.1] max-w-2xl"
           style={{ color: "#cba53cff" }}
         >
           {title}
@@ -82,7 +84,7 @@ export default function Home() {
         <div ref={containerRef} className="relative h-[500vh]">
 
           {/* BACKGROUND */}
-          <div className="sticky top-0 w-full h-screen z-0">
+          <div className="sticky top-0 w-full h-[100svh] z-0">
             <ScrollSequence
               framesCount={240}
               baseUrl="/images/sequence"
@@ -95,13 +97,13 @@ export default function Home() {
           <div className="absolute top-0 left-0 w-full z-10 pointer-events-none">
 
             {/* HERO */}
-            <div className="h-[100vh] flex flex-col items-center justify-center px-10 text-center">
+            <div className="h-[100svh] flex flex-col items-center justify-center px-6 text-center">
               <motion.div
                 initial={{ opacity: 0, y: 30 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 1.2 }}
               >
-                <h1 className="text-5xl md:text-8xl font-serif mb-4 leading-[1.1]" style={{ color: '#cba53cff' }}>
+                <h1 className="text-4xl sm:text-5xl md:text-8xl font-serif mb-4 leading-[1.1]" style={{ color: '#cba53cff' }}>
                   Golden Memory <br /> Studio
                 </h1>
 
@@ -148,12 +150,12 @@ export default function Home() {
             {/* 🔥 FINAL CTA */}
             <div className="min-h-screen flex items-center justify-center px-10 text-center">
               <motion.div
-                initial={{ opacity: 0, scale: 0.95, y: 60 }}
+                initial={{ opacity: 0, scale: 0.95, y: 30 }}
                 whileInView={{ opacity: 1, scale: 1, y: 0 }}
                 transition={{ duration: 1.2, ease: "easeOut" }}
                 className="w-full max-w-5xl mx-auto"
               >
-                <h2 className="text-6xl md:text-8xl font-serif mb-12 leading-[1.1]" style={{ color: '#cba53cff' }}>
+                <h2 className="text-5xl sm:text-6xl md:text-8xl font-serif mb-12 leading-[1.1]" style={{ color: '#cba53cff' }}>
                   Ready to capture <br /> something real?
                 </h2>
 

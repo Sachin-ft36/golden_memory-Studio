@@ -13,21 +13,46 @@ const ScrollSequence: React.FC<ScrollSequenceProps> = ({ framesCount, baseUrl, c
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [images, setImages] = useState<HTMLImageElement[]>([]);
   const [imagesLoaded, setImagesLoaded] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
+
+  // ✅ RESPONSIVE CONFIG
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+
+  const currentConfig = useMemo(() => {
+    if (isMobile) {
+      return {
+        count: 40,
+        path: '/images/phone_seqence'
+      };
+    }
+    return {
+      count: framesCount, // 240
+      path: baseUrl      // /images/sequence
+    };
+  }, [isMobile, framesCount, baseUrl]);
 
   // Progressive loading of images
   useEffect(() => {
     let loadedCount = 0;
     const loadedImages: HTMLImageElement[] = [];
+    setImagesLoaded(false);
 
     const preloadImages = async () => {
-      for (let i = 1; i <= framesCount; i++) {
+      for (let i = 1; i <= currentConfig.count; i++) {
         const img = new Image();
         const frameIndex = i.toString().padStart(3, '0');
-        img.src = `${baseUrl}/ezgif-frame-${frameIndex}.jpg`;
+        img.src = `${currentConfig.path}/ezgif-frame-${frameIndex}.jpg`;
         
         img.onload = () => {
           loadedCount++;
-          if (loadedCount === framesCount) {
+          if (loadedCount === currentConfig.count) {
             setImagesLoaded(true);
           }
         };
@@ -37,7 +62,7 @@ const ScrollSequence: React.FC<ScrollSequenceProps> = ({ framesCount, baseUrl, c
     };
 
     preloadImages();
-  }, [framesCount, baseUrl]);
+  }, [currentConfig]);
 
   const { scrollYProgress } = useScroll({
     target: containerRef,
@@ -50,10 +75,16 @@ const ScrollSequence: React.FC<ScrollSequenceProps> = ({ framesCount, baseUrl, c
     restDelta: 0.001
   });
 
-  // 0-0.45: Disassemble (0 -> 239)
-  // 0.45-0.55: Hold Exploded (239)
-  // 0.55-1.0: Reassemble (239 -> 0)
-  const frameIndex = useTransform(smoothProgress, [0, 0.45, 0.55, 1], [0, 239, 239, 0], { clamp: true });
+  // 0-0.45: Disassemble
+  // 0.45-0.55: Hold Exploded
+  // 0.55-1.0: Reassemble
+  const frameIndex = useTransform(smoothProgress, (p) => {
+    const maxFrame = currentConfig.count - 1;
+    if (p <= 0.45) return (p / 0.45) * maxFrame;
+    if (p <= 0.55) return maxFrame;
+    const backProgress = (p - 0.55) / 0.45;
+    return maxFrame - (backProgress * maxFrame);
+  });
 
   useEffect(() => {
     const render = () => {
@@ -73,7 +104,14 @@ const ScrollSequence: React.FC<ScrollSequenceProps> = ({ framesCount, baseUrl, c
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       
       // Photorealistic rendering: ensure canvas size matches viewport
-      const scale = Math.max(canvas.width / img.width, canvas.height / img.height);
+      // ✅ RESPONSIVE SCALING
+      // on PC: Cover the screen (Math.max)
+      // on Mobile: Fit the width (canvas.width / img.width) to see the full horizontal frame
+      const isMobile = window.innerWidth < 768;
+      const scale = isMobile 
+        ? (canvas.width / img.width) 
+        : Math.max(canvas.width / img.width, canvas.height / img.height);
+
       const x = (canvas.width / 2) - (img.width / 2) * scale;
       const y = (canvas.height / 2) - (img.height / 2) * scale;
 
@@ -106,7 +144,7 @@ const ScrollSequence: React.FC<ScrollSequenceProps> = ({ framesCount, baseUrl, c
   }, [frameIndex, images, imagesLoaded]);
 
   return (
-    <div className="w-full h-screen overflow-hidden flex items-center justify-center bg-[#050505]">
+    <div className="w-full h-[100svh] overflow-hidden flex items-center justify-center bg-[#050505]">
       <canvas
         ref={canvasRef}
         className="w-full h-full object-cover"
